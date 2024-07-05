@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "164304390988",
+    "firebase_url": "https://onlayn-magazin-1-default-rtdb.firebaseio.com",
+    "project_id": "onlayn-magazin-1",
+    "storage_bucket": "onlayn-magazin-1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:164304390988:android:d355b41753eb87d08d1de9",
+        "android_client_info": {
+          "package_name": "com.example.chateo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGEeXoAWGM_Lg-oeHd_-aF_I4oAnjBT2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
