@@ -46,7 +46,8 @@ class _UsersScreenState extends State<UsersScreen> {
                       final user = UserModel.fromQuerySnapshot(users[index]);
                       return ListTile(
                         onTap: () {
-                          Navigator.pushNamed(context, AppRoutes.chat, arguments: user);
+                          Navigator.pushNamed(context, AppRoutes.chat,
+                              arguments: user);
                         },
                         leading: CircleAvatar(
                           backgroundImage: NetworkImage(user.imageUrl),

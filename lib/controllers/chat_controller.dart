@@ -1,10 +1,21 @@
 import 'package:chateo/services/chat_firebase_services.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatController {
   final _chatFirebaseServices = ChatFirebaseServices();
 
-  Future<DocumentSnapshot?> getChatBetweenParticipants(String loggedInUserEmail, String receiverUserEmail) {
-    return _chatFirebaseServices.getChatBetweenParticipants(loggedInUserEmail, receiverUserEmail);
+  Stream<List<Map<String, dynamic>>?> streamMessagesFromChatWithParticipants(
+      String senderEmail, String receiverEmail) async* {
+    yield* _chatFirebaseServices.streamMessagesFromChatWithParticipants(
+        senderEmail, receiverEmail);
+  }
+
+  Future<void> addMessage(
+    String senderEmail,
+    String receiverEmail,
+    String text,
+    String type,
+  ) {
+    return _chatFirebaseServices.addMessage(
+        senderEmail, receiverEmail, text, type);
   }
 }

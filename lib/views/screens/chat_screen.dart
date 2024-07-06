@@ -2,13 +2,12 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:chateo/controllers/chat_controller.dart';
-import 'package:chateo/models/chat.dart';
 import 'package:chateo/models/message.dart';
 import 'package:chateo/models/user_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
   final UserModel user;
@@ -20,6 +19,11 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _chatController = ChatController();
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _textController = TextEditingController();
+
+  bool isButtonEnabled = true;
+
   File? imageFile;
 
   void openGallery() async {
@@ -54,8 +58,31 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  final email =
+  final loggedUserEmail =
       FirebaseAuth.instance.currentUser?.email ?? "default@example.com";
+
+  //! StreamBuilder'siz ma'lumotlarni eshitib turish
+  // void listenForMessages() {
+  //   _chatFirebaseServices
+  //       .streamMessagesFromChatWithParticipants(
+  //           loggedUserEmail, widget.user.email)
+  //       .listen((messages) {
+  //     if (messages != null) {
+  //       for (var message in messages) {
+  //         print(message);
+  //       }
+  //     } else {
+  //       print("Ikkala email mavjud bo'lgan chat topilmadi.");
+  //     }
+  //   });
+  // }
+
+  void sendMessage() async {
+    if (_formKey.currentState!.validate()) {
+      await _chatController.addMessage(
+          loggedUserEmail, widget.user.email, _textController.text, "text");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,69 +98,80 @@ class _ChatScreenState extends State<ChatScreen> {
           subtitle: Text(widget.user.status),
         ),
       ),
-      body: FutureBuilder(
-        future: _chatController.getChatBetweenParticipants(
-            email, widget.user.email),
+      body: StreamBuilder(
+        stream: _chatController.streamMessagesFromChatWithParticipants(
+            loggedUserEmail, widget.user.email),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(
-              child: Text("Start messaging..."),
-            );
-          }
 
-          print(
-            Chat.fromQuerySnapshot(snapshot.data!).messages.snapshots().map(
-                (snapshot) => snapshot.docs
-                    .map((doc) => Message.fromFirestore(doc))
-                    .toList()),
-          );
+          final messages = snapshot.data;
 
-          return Column(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(15),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF7F7FC),
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(20),
-                              ),
-                            ),
-                            child: const Text("What time is it?"),
-                          )
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(15),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.shade100,
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(20),
-                              ),
-                            ),
-                            child: const Text("It is morning in Tokyo"),
-                          )
-                        ],
-                      )
-                    ],
+          return Column(mainAxisSize: MainAxisSize.min, children: [
+            !snapshot.hasData || snapshot.data == null
+                ? const Expanded(
+                    child: Center(
+                      child: Text("No messages here yet..."),
+                    ),
+                  )
+                : Expanded(
+                    child: ListView.builder(
+                      itemCount: messages!.length,
+                      itemBuilder: (context, index) {
+                        final message = Message.fromFirestore(messages[index]);
+
+                        final formattedDate = DateFormat('yyyy-MM-dd - kk:mm')
+                            .format(message.timestamp.toDate());
+
+                        return Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Row(
+                            mainAxisAlignment:
+                                message.senderId == loggedUserEmail
+                                    ? MainAxisAlignment.end
+                                    : MainAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(15),
+                                decoration: BoxDecoration(
+                                  color: message.senderId == loggedUserEmail
+                                      ? Colors.blue.shade100
+                                      : const Color(0xFFF7F7FC),
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(20),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      message.text,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      formattedDate,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ),
-              Container(
+            Form(
+              key: _formKey,
+              child: Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFFF7F7FC),
                 ),
@@ -237,21 +275,39 @@ class _ChatScreenState extends State<ChatScreen> {
                     SizedBox(
                       width: MediaQuery.of(context).size.width * 0.6,
                       child: TextFormField(
+                        controller: _textController,
                         decoration: const InputDecoration(
                           hintText: "Message",
                           border: InputBorder.none,
                         ),
+                        // onChanged: (value) {
+                        //   if (value.trim().isNotEmpty) {
+                        //     setState(() {
+                        //       isButtonEnabled = true;
+                        //     });
+                        //   } else {
+                        //     setState(() {
+                        //       isButtonEnabled = false;
+                        //     });
+                        //   }
+                        // },
+                        validator: (value) {
+                          if (value!.trim().isEmpty) {
+                            return "Enter a message";
+                          }
+                        },
                       ),
                     ),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: isButtonEnabled ? sendMessage : null,
                       icon: const Icon(Icons.send),
-                    )
+                      tooltip: isButtonEnabled ? 'Send' : 'Disabled',
+                    ),
                   ],
                 ),
               ),
-            ],
-          );
+            )
+          ]);
         },
       ),
     );

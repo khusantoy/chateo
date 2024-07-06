@@ -1,47 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Message {
-  String id;
   String senderId;
   String text;
-  Timestamp timestamp;
   String type;
+  Timestamp timestamp;
 
   Message({
-    required this.id,
     required this.senderId,
     required this.text,
-    required this.timestamp,
     required this.type,
+    required this.timestamp,
   });
 
-  factory Message.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map;
+  // Factory constructor to create a Message from a Firestore document
+  factory Message.fromFirestore(Map<String, dynamic> data) {
     return Message(
-      id: doc.id,
       senderId: data['senderId'] ?? '',
       text: data['text'] ?? '',
-      timestamp: data['timestamp'] ?? Timestamp.now(),
       type: data['type'] ?? '',
+      timestamp: data['timestamp'] ?? Timestamp.now(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  // Method to convert a Message to a map for Firestore
+  Map<String, dynamic> toFirestore() {
     return {
       'senderId': senderId,
       'text': text,
-      'timestamp': timestamp,
       'type': type,
+      'timestamp': timestamp,
     };
-  }
-
-  factory Message.fromQuerySnapshot(QueryDocumentSnapshot query) {
-    return Message(
-      id: query.id,
-      senderId: query['senderId'] ?? '',
-      text: query['text'] ?? '',
-      timestamp: query['timestamp'] ?? Timestamp.now(),
-      type: query['type'] ?? '',
-    );
   }
 }
