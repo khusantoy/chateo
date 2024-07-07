@@ -23,20 +23,20 @@ class ChatFirebaseServices {
             .collection('chats')
             .doc(chatId)
             .collection('messages')
+            .orderBy('timestamp',
+                descending:
+                    true) // Add this line to order by timestamp in descending order
             .snapshots()
             .map((snapshot) {
           List<Map<String, dynamic>> messages = [];
           for (var messageDoc in snapshot.docs) {
             messages.add(messageDoc.data());
           }
-          return messages;
+          return messages.reversed.toList();
         });
         return; // Birinchi mos keladigan chat topilganda funksiyani to'xtatish
       }
     }
-
-    // Agar hech bir hujjat mos kelmasa, null qaytarish
-    yield null;
   }
 
   Future<void> addMessage(

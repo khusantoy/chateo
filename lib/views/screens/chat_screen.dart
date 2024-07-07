@@ -21,6 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _chatController = ChatController();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   bool isButtonEnabled = true;
 
@@ -81,6 +82,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_formKey.currentState!.validate()) {
       await _chatController.addMessage(
           loggedUserEmail, widget.user.email, _textController.text, "text");
+      _textController.clear();
     }
   }
 
@@ -110,6 +112,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
           final messages = snapshot.data;
 
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController
+                  .jumpTo(_scrollController.position.maxScrollExtent);
+            }
+          });
+
           return Column(mainAxisSize: MainAxisSize.min, children: [
             !snapshot.hasData || snapshot.data == null
                 ? const Expanded(
@@ -119,6 +128,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   )
                 : Expanded(
                     child: ListView.builder(
+                      controller: _scrollController,
                       itemCount: messages!.length,
                       itemBuilder: (context, index) {
                         final message = Message.fromFirestore(messages[index]);
@@ -135,6 +145,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                     : MainAxisAlignment.start,
                             children: [
                               Container(
+                                constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.of(context).size.width *
+                                      0.6, // maksimal kenglikni qo'shing
+                                ),
                                 padding: const EdgeInsets.all(15),
                                 decoration: BoxDecoration(
                                   color: message.senderId == loggedUserEmail
@@ -146,6 +160,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       message.text,
@@ -153,6 +168,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                         fontSize: 18,
                                         fontWeight: FontWeight.w500,
                                       ),
+                                    ),
+                                    const SizedBox(
+                                      height: 5,
                                     ),
                                     Text(
                                       formattedDate,
